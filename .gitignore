@@ -1,2 +1,2 @@
-src/belNLP/data/*
-src/belNLP/models/*
+src/belNLP/data
+src/belNLP/models

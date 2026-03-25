@@ -155,3 +155,4 @@ probs, tags = predict(model, text_split, char2idx, device)
 print("word           tag      confidence")
 for word, prob, tag in zip(text_split, probs, tags):
     print(f"{word:<14} {idx2tag[tag.item()]:<8}   {prob.item():.3f}")
+    
