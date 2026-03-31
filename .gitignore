@@ -1,2 +1,3 @@
-src/belNLP/data/
-src/belNLP/models/
+src/data/
+src/models/
+src/belNLP/testing/
