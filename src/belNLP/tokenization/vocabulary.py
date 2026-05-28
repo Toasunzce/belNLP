@@ -3,7 +3,7 @@ from collections import Counter
 from pathlib import Path
 import json
 
-from tokenization.base import BaseTokenizer, BaseVocabulary
+from belNLP.tokenization.base import BaseTokenizer, BaseVocabulary
 
 
 

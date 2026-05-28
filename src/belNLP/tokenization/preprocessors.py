@@ -1,4 +1,4 @@
-from tokenization.base import BasePreprocessor
+from belNLP.tokenization.base import BasePreprocessor
 import unicodedata
 import re
 

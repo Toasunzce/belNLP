@@ -1,3 +1,6 @@
 src/data/
 src/models/
 src/belNLP/testing/
+
+src/belNLP/morphology/__pycache__/
+src/belNLP/tokenization/__pycache__/

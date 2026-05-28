@@ -1,4 +1,4 @@
-from tokenization.base import BaseFilter
+from belNLP.tokenization.base import BaseFilter
 import re
 
 

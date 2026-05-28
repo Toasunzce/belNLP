@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 
-from tokenization.base import BaseTokenizer
+from belNLP.tokenization.base import BaseTokenizer
 
 
 """
@@ -114,7 +114,7 @@ class WordTokenizer(BaseTokenizer):
             re.UNICODE
         )
 
-    def tokenize(self, text: str) -> list[str]:
+    def _tokenize(self, text: str) -> list[str]:
         return [m.group() for m in self._compiled_regex.finditer(text)]
 
 

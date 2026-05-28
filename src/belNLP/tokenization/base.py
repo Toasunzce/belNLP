@@ -22,6 +22,10 @@ class BaseTokenizer(ABC):
         text = self._preprocess(text)
         tokens = self._tokenize(text)
         return self._postprocess(tokens)
+    
+
+    def __call__(self, text) -> list[str]:
+        return self.tokenize(text)
 
     @abstractmethod
     def _tokenize(self, text: str) -> list[str]:

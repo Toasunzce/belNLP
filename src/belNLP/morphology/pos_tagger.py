@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
-from morphology.base import BaseAnnotator, MorphToken
-from typing import LiteralString
+from typing_extensions import Self
+
+
+from belNLP.morphology.base import BaseAnnotator, MorphToken
 
 
 class _SelfAttention(nn.Module):
@@ -40,6 +42,7 @@ class _WordEncoder(nn.Module):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_id)
         self.lstm = nn.LSTM(embedding_dim, hidden, batch_first=True, bidirectional=True)
+        self.dropout = nn.Dropout(0.3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch, words, chars = x.shape           # [batch, words, chars]
@@ -47,6 +50,7 @@ class _WordEncoder(nn.Module):
         emb = self.embedding(x)                 # [batch * words, chars, emb_size]
         _, (h, _) = self.lstm(emb)              # [2, batch * words, hidden_size]
         h = torch.cat([h[0], h[1]], dim=-1)     # [batch * words, 2 * hidden_size]
+        h = self.dropout(h)
         h = h.view(batch, words, -1)            # [batch, words, 2 * hidden_size]
         return h
 
@@ -81,7 +85,7 @@ class _POSTaggerModel(nn.Module):
             self,
             vocab_size,
             num_tags,
-            embedding_dim=128,
+            embedding_dim=64,
             word_hidden=128,
             sent_hidden=128,
             pad_id=0,
@@ -105,7 +109,7 @@ class _POSTaggerModel(nn.Module):
 
 
 
-class POSTagger(BaseAnnotator):
+class POSTagger(BaseAnnotator[str, MorphToken]):
     """
     Part-of-speech tagger for Belarusian text.
     Trained on UD Belarusian HSE corpus.
@@ -113,13 +117,15 @@ class POSTagger(BaseAnnotator):
           ADP, CONJ, PART, INTJ, NUM, PUNCT, X
 
     Usage:
-        tagger = POSTagger.load("models/POSTagger.pt")
-        result = tagger.annotate(["Я", "іду", "дадому"])
-        `result[1].pos == "VERB"`
+        ```
+        >>> tagger = POSTagger.load("models/POSTagger.pt")
+        >>> result = tagger.annotate(["Я", "іду", "дадому"])
+        >>> assert result[1].pos == "VERB"
+        ```
     """
     def __init__(self, model: _POSTaggerModel,
-                 char2idx: dict[LiteralString, int],
-                 idx2tag: dict[int, LiteralString],
+                 char2idx: dict[str, int],
+                 idx2tag: dict[int, str],
                  device: torch.device):
         self._model = model
         self._char2idx = char2idx
@@ -127,8 +133,10 @@ class POSTagger(BaseAnnotator):
         self._device = device
 
     @classmethod
-    def load(cls, path: LiteralString | Path) -> "POSTagger":
-        """Load model and vocab from checkpoint."""
+    def load(cls, path: str | Path) -> Self:
+        """
+        
+        """
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
 
         char2idx = checkpoint["char2idx"]
@@ -147,11 +155,9 @@ class POSTagger(BaseAnnotator):
 
         return cls(model, char2idx, idx2tag, device)
 
-    def _encode(self, tokens: list[LiteralString]) -> torch.Tensor:
+    def _encode(self, tokens: list[str]) -> torch.Tensor:
         """
-        Encode token list to character-level padded tensor.
-        Uses Vocabulary-style char2idx lookup with <UNK> fallback.
-        Output shape: [1, words, max_char_len]
+
         """
         max_word_len = max(len(w) for w in tokens)
         padded = []
@@ -167,31 +173,27 @@ class POSTagger(BaseAnnotator):
         return torch.tensor([padded], dtype=torch.long).to(self._device)
 
 
-    def annotate(self, tokens: list[LiteralString]) -> list[MorphToken]:
+    @torch.no_grad()
+    def annotate(self, tokens: list[str]) -> list[MorphToken]:
         """
-        Run inference on token list.
-        Returns MorphToken list with pos field filled.
+
         """
         self._model.eval()
 
         x = self._encode(tokens)
-
-        with torch.no_grad():
-            logits = self._model(x)             # [1, words, num_tags]
-            preds  = logits.argmax(-1)[0]       # [words]
-            probs  = F.softmax(logits[0], dim=-1).max(-1).values  # [words]
+        logits = self._model(x)             # [1, words, num_tags]
+        preds  = logits.argmax(-1)[0]       # [words]
+        probs  = F.softmax(logits[0], dim=-1).max(-1).values  # [words]
 
         result = []
         for token, pred, prob in zip(tokens, preds, probs):
             result.append(MorphToken(
                 text=token,
                 pos=self._idx2tag[pred.item()],
+                morph={"pos_prob": str(round(prob.item(), 4))},
             ))
 
         return result
     
-
-if __name__ == "__main__":
-    model = POSTagger.load("C:/Users/twist/OneDrive/Документы/Projects/belNLP/src/models/POSTagger.pt")
-    text_split = """Фасады гарызантальна ашаляваны , прарэзаны лучковымі аконнымі праёмамі .""".split()
-    print(model.annotate(text_split))
+    def __call__(self, tokens: list[str]) -> list[MorphToken]:
+        return self.annotate(tokens)
