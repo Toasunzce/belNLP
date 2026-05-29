@@ -50,7 +50,7 @@ function AnalyzePanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid var(--border)' }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-        <label>тэкст для аналізу</label>
+        <label>text for analysis</label>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
@@ -60,11 +60,11 @@ function AnalyzePanel() {
         />
         <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
           <button className="primary" onClick={run} disabled={loading}>
-            {loading ? 'аналіз...' : 'прааналізаваць'}
+            {loading ? 'analysing...' : 'analyse'}
           </button>
           {tokens.length > 0 && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
-              {tokens.length} токенаў
+              {tokens.length} tokens
             </span>
           )}
         </div>
@@ -91,7 +91,7 @@ function AnalyzePanel() {
 
       {!tokens.length && !loading && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-          увядзіце тэкст і націсніце прааналізаваць
+          enter text and press "analyse"
         </div>
       )}
     </div>
@@ -114,8 +114,10 @@ function TokenCard({ token }) {
     >
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 500 }}>{token.text}</span>
       {token.pos && <span className={`tag ${posClass(token.pos)}`} style={{ alignSelf: 'flex-start' }}>{token.pos}</span>}
-      {token.lemma && token.lemma !== token.text && (
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>→ {token.lemma}</span>
+      {token.lemma && (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: token.lemma !== token.text ? 'var(--muted)' : 'var(--border)' }}>
+          → {token.lemma}
+        </span>
       )}
     </div>
   )
@@ -151,10 +153,10 @@ function LemmatizePanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>лематызатар</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>lemmatizer</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
-            <label>слова</label>
+            <label>word</label>
             <input
               value={word}
               onChange={e => setWord(e.target.value)}
@@ -187,7 +189,7 @@ function LemmatizePanel() {
 
       {history.length > 0 && (
         <div style={{ padding: '12px 16px', flex: 1 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>гісторыя</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>history</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {history.map((h, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 8px', borderRadius: 4, transition: 'background 0.1s' }}

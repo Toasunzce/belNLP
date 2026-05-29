@@ -1,30 +1,15 @@
 from abc import ABC, abstractmethod
 
 
-
-"""
-
-"""
-
-"""
-module pipeline:
-  - preprocessing (e.g. LowercasePreprocessor)
-  - tokenizing (e.g. WordTokenizer)
-  - postprocessing (WIP)
-"""
-
-
 class BaseTokenizer(ABC):
-    """
-    Base interface for all tokenization models.
-    """
+    """Base class for all tokenizers. Calls _preprocess → _tokenize → _postprocess."""
+
     def tokenize(self, text: str) -> list[str]:
         text = self._preprocess(text)
         tokens = self._tokenize(text)
         return self._postprocess(tokens)
-    
 
-    def __call__(self, text) -> list[str]:
+    def __call__(self, text: str) -> list[str]:
         return self.tokenize(text)
 
     @abstractmethod
@@ -36,13 +21,10 @@ class BaseTokenizer(ABC):
 
     def _postprocess(self, tokens: list[str]) -> list[str]:
         return tokens
-    
 
 
 class BasePreprocessor(ABC):
-    """
-    Base interface for all text preprocessors.
-    """
+    """Base class for text preprocessors."""
 
     def __call__(self, text: str) -> str:
         return self.process(text)
@@ -53,19 +35,18 @@ class BasePreprocessor(ABC):
 
 
 class BaseFilter(ABC):
-    """
-    
-    """
+    """Base class for token filters."""
+
     @abstractmethod
     def filter(self, tokens: list[str]) -> list[str]:
         pass
 
     def __call__(self, tokens: list[str]) -> list[str]:
         return self.filter(tokens)
-    
 
 
 class BaseVocabulary(ABC):
+    """Base class for token vocabularies (token ↔ id mapping)."""
 
     @abstractmethod
     def token2id(self, token: str) -> int:
@@ -85,5 +66,3 @@ class BaseVocabulary(ABC):
             return True
         except KeyError:
             return False
-        
-

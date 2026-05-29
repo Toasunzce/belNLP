@@ -4,54 +4,14 @@ from collections import defaultdict
 from belNLP.tokenization.base import BaseTokenizer
 
 
-"""
-patterns:
-
-
-"""
-
-
-"""
-Low-level module for text splitting (tokenization tasks).
-Currently module supports the following tasks:
-
-- RegexTokenizer:
-  Tokenizer based on custom regular expressions. Uses a single pattern to extract tokens.
-
-- WhitespaceTokenizer:
-  Splits text by whitespace.
-  Example:
-    "We’re just grabbing coffee." -> ["We’re", "just", "grabbing", "coffee."]
-
-- SentenceTokenizer:
-  Splits text into sentences using simple punctuation rules.
-  Note: does not handle edge cases like abbreviations (e.g. "Dr.", "e.g.").
-
-- WordTokenizer:
-  More advanced tokenizer for common separation cases:
-    - words
-    - numbers (keeps formats like ["3.1415", "1.000.000,00"])
-    - punctuation
-    - NLP special tokens (<SOS>, <PAD>, etc)
-
-- BPETokenizer:
-  <WORK IN PROGRESS>
-"""
-
-
-
 class RegexTokenizer(BaseTokenizer):
-    """
-    Base tokenizer using a single regular expression.
+    """Tokenizes text using a single compiled regular expression.
 
-    Args:
-        pattern (str): Regular expression used for token extraction
-
-    Notes:
-        - Pattern is compiled once during initialization
-        - For complex tokenization, prefer using named groups (see WordTokenizer)
+    Example:
+        >>> RegexTokenizer(r"\\w+").tokenize("прывет, свет!") == ["прывет", "свет"]
     """
-    def __init__(self, pattern: str):
+
+    def __init__(self, pattern: str) -> None:
         self._pattern = pattern
         self._compiled_regex = re.compile(pattern)
 
@@ -59,71 +19,63 @@ class RegexTokenizer(BaseTokenizer):
         return self._compiled_regex.findall(text)
 
 
-
 class WhitespaceTokenizer(RegexTokenizer):
-    """
-    Tokenizer that splits text on whitespace.
-
-    Used pattern: r"\\S+" (sequences of non-whitespace characters)
+    """Splits text on whitespace. Keeps punctuation attached to words.
 
     Example:
-        "Hello, world!" -> ["Hello,", "world!"]
+        >>> WhitespaceTokenizer().tokenize("Прывет, свет!") == ["Прывет,", "свет!"]
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         super().__init__(pattern=r"\S+")
 
 
-
 class SentenceTokenizer(RegexTokenizer):
-    """
-    Naive sentence tokenizer based on punctuation. Does not handle abbreviations (e.g. "Dr.", "Mr.", "e.g.")
-
-    Used pattern: r"[^\s][^.!?]+[.!?]" (sequences, separated by punctuation)
+    """Splits text into sentences on .!? — does not handle abbreviations.
 
     Example:
-        "Hello world. How are you?" -> ["Hello world.", "How are you?"]
+        >>> SentenceTokenizer().tokenize("Прывет. Як справы?") == ["Прывет.", "Як справы?"]
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         super().__init__(pattern=r"[^.!?]+[.!?]|[^.!?]+$")
 
 
-
 class WordTokenizer(BaseTokenizer):
-    """
-    Rule-based tokenizer with support for words, numbers, punctuation and special tokens.
+    """Splits text into words, numbers, punctuation and NLP special tokens.
 
-    Token types:
-        - words
-        - numbers (keeps formats like ["3.1415", "1.000.000,00"])
-        - punctuation
-        - NLP special tokens (<SOS>, <PAD>, etc)
+    Token types: WORD, NUM (e.g. 1,234.56), PUNCT, SPECIAL (<PAD>, <UNK>).
 
     Example:
-        "Hmmm, price is 1,234.56!" ->
-        ["Hmmm", ",", "price", "is", "1,234.56", "!"]
+        >>> WordTokenizer().tokenize("Цана: 1,234.56!") == ["Цана", ":", "1,234.56", "!"]
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         self._patterns = {
-            "NUM":       r"\d+(?:[.,]\d+)+|\d+",
-            "SPECIAL":   r"<[^>\s]+>",
-            "WORD":      r"\w+(?:'\w+)*",
-            "PUNCT":     r"[^\w\s]",
+            "NUM":     r"\d+(?:[.,]\d+)+|\d+",
+            "SPECIAL": r"<[^>\s]+>",
+            "WORD":    r"\w+(?:'\w+)*",
+            "PUNCT":   r"[^\w\s]",
         }
         self._compiled_regex = re.compile(
             "|".join(f"(?P<{k}>{v})" for k, v in self._patterns.items()),
-            re.UNICODE
+            re.UNICODE,
         )
 
     def _tokenize(self, text: str) -> list[str]:
         return [m.group() for m in self._compiled_regex.finditer(text)]
 
 
-
 class BPETokenizer(BaseTokenizer):
+    """Byte Pair Encoding tokenizer. Must be trained with fit() before use.
+
+    Example:
+        >>> bpe = BPETokenizer()
+        >>> bpe.fit([["прывет", "свет"], ["кот", "бяжыць"]], vocab_size=200)
+        >>> bpe.tokenize("прывет свет")
     """
-    
-    """
-    def __init__(self, left_spec='<', right_spec='>'):
+
+    def __init__(self, left_spec: str = "<", right_spec: str = ">") -> None:
         self._vocabulary: dict[str, int] = {}
         self._merges: list[tuple[str, str]] = []
         self._merge_ranks: dict[tuple[str, str], int] = {}
@@ -131,11 +83,11 @@ class BPETokenizer(BaseTokenizer):
         self._right_spec = right_spec
         self._cache: dict[str, tuple[str, ...]] = {}
 
-
-    def fit(self, corpus: list[list[str]], vocab_size: int = 1024):
+    def fit(self, corpus: list[list[str]], vocab_size: int = 1024) -> None:
+        """Train BPE merges on a tokenized corpus."""
         self._cache = {}
-        words = []
-        charset = set()
+        words: list[list[str]] = []
+        charset: set[str] = set()
 
         for sentence in corpus:
             for word in sentence:
@@ -146,30 +98,26 @@ class BPETokenizer(BaseTokenizer):
         initial_vocab_size = len(charset) + 2
         if vocab_size <= initial_vocab_size:
             raise ValueError(
-                f"vocab_size must be greater than initial character set ({initial_vocab_size})"
+                f"vocab_size must be > initial character set size ({initial_vocab_size})"
             )
 
-        merges = []
+        merges: list[tuple[str, str]] = []
 
         for _ in range(vocab_size - initial_vocab_size):
-            pair_freq = defaultdict(int)
-
+            pair_freq: dict[tuple[str, str], int] = defaultdict(int)
             for word in words:
                 for i in range(len(word) - 1):
-                    pair = (word[i], word[i + 1])
-                    pair_freq[pair] += 1
+                    pair_freq[(word[i], word[i + 1])] += 1
 
             if not pair_freq:
                 break
 
-            best_pair = max(pair_freq, key=pair_freq.get)   # FIXME pair.freq key error  # ty:ignore[no-matching-overload]
+            best_pair = max(pair_freq, key=lambda p: pair_freq[p])
             merges.append(best_pair)
 
             new_words = []
             for word in words:
-                i = 0
-                new_word = []
-
+                i, new_word = 0, []
                 while i < len(word):
                     if i < len(word) - 1 and (word[i], word[i + 1]) == best_pair:
                         new_word.append(word[i] + word[i + 1])
@@ -177,55 +125,37 @@ class BPETokenizer(BaseTokenizer):
                     else:
                         new_word.append(word[i])
                         i += 1
-
                 new_words.append(new_word)
-
             words = new_words
 
         self._merges = merges
-        self._merge_ranks = {merge: i for i, merge in enumerate(self._merges)}
+        self._merge_ranks = {merge: i for i, merge in enumerate(merges)}
 
-        vocab = set()
+        vocab: set[str] = set()
         for word in words:
             vocab.update(word)
-
-        self._vocabulary = {
-            token: idx for idx, token in enumerate(sorted(vocab))
-        }
-
+        self._vocabulary = {token: idx for idx, token in enumerate(sorted(vocab))}
 
     def _tokenize(self, text: str) -> list[str]:
-        words = text.split()
-        tokens = []
-
-        for word in words:
-            encoded = self._encode_word(word)
-            tokens.extend(encoded)
-
+        tokens: list[str] = []
+        for word in text.split():
+            tokens.extend(self._encode_word(word))
         return tokens
-
 
     def _encode_word(self, word: str) -> tuple[str, ...]:
         if word in self._cache:
             return self._cache[word]
 
-        tokens = [self._left_spec] + list(word) + [self._right_spec]
+        tokens: list[str] = [self._left_spec] + list(word) + [self._right_spec]
 
         while True:
-            best_rank = float('inf')
-            best_idx = -1
-
+            best_rank, best_idx = float("inf"), -1
             for i in range(len(tokens) - 1):
-                pair = (tokens[i], tokens[i + 1])
-                rank = self._merge_ranks.get(pair, float('inf'))
-
+                rank = self._merge_ranks.get((tokens[i], tokens[i + 1]), float("inf"))
                 if rank < best_rank:
-                    best_rank = rank
-                    best_idx = i
-
+                    best_rank, best_idx = rank, i
             if best_idx == -1:
                 break
-
             tokens = (
                 tokens[:best_idx]
                 + [tokens[best_idx] + tokens[best_idx + 1]]

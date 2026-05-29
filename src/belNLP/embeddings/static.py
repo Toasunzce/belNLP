@@ -9,13 +9,11 @@ from belNLP.embeddings.base import StaticEmbedder, EmbeddingResult
 
 
 class FastTextEmbedder(StaticEmbedder):
-    """
-    Wrapper over the native Facebook fastText library.
-    Supports OOV words via character n-gram subword embeddings.
+    """Wraps the native fastText library. Supports OOV via subword n-grams.
 
-    Usage:
+    Example:
         >>> embedder = FastTextEmbedder.load("models/cc.be.300.bin")
-        >>> vec = embedder.embed_word("кот")
+        >>> embedder.embed_word("кот")  # -> np.ndarray (300,)
     """
 
     def __init__(self, model) -> None:
@@ -70,13 +68,11 @@ class FastTextEmbedder(StaticEmbedder):
 
 
 class Word2VecEmbedder(StaticEmbedder):
-    """
-    Wrapper over gensim KeyedVectors (.bin / .kv).
-    OOV words return a zero vector by default.
+    """Wraps gensim KeyedVectors (.bin/.kv). OOV words return a zero vector.
 
-    Usage:
+    Example:
         >>> embedder = Word2VecEmbedder.load("models/w2v.bin")
-        >>> vec = embedder.embed_word("кот")
+        >>> embedder.embed_word("кот")  # -> np.ndarray (300,)
     """
 
     def __init__(self, keyed_vectors) -> None:
@@ -120,12 +116,11 @@ class Word2VecEmbedder(StaticEmbedder):
 
 
 class GloVeEmbedder(StaticEmbedder):
-    """
-    Loads plain-text GloVe vectors (word f1 f2 ... fn).
+    """Loads plain-text GloVe vectors (one "word f1 f2 … fn" per line).
 
-    Usage:
+    Example:
         >>> embedder = GloVeEmbedder.load("models/glove.txt")
-        >>> vec = embedder.embed_word("кот")
+        >>> embedder.embed_word("кот")  # -> np.ndarray (300,)
     """
 
     def __init__(self, vectors: dict[str, np.ndarray], dim: int) -> None:
@@ -199,14 +194,13 @@ class GloVeEmbedder(StaticEmbedder):
 
 
 class GensimAdapter(StaticEmbedder):
-    """
-    Adapter pattern: wraps any gensim KeyedVectors object
-    into the StaticEmbedder interface.
+    """Adapts any gensim KeyedVectors to the StaticEmbedder interface.
 
-    Usage:
-        >>> from gensim.models import KeyedVectors
-        >>> kv = KeyedVectors.load("models/fasttext.kv")
+    Example:
+        >>> kv = KeyedVectors.load("models/bel_ft.model.kv")
         >>> embedder = GensimAdapter(kv)
+        >>> embedder.embed_word("кот")   # -> np.ndarray (100,)
+        >>> embedder.most_similar("кот") # -> ["сабака", ...]
     """
 
     def __init__(self, keyed_vectors) -> None:

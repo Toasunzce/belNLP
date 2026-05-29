@@ -5,19 +5,15 @@ import numpy as np
 from belNLP.embeddings.base import BaseEmbedder, BaseSentenceEmbedder
 
 
-
 class MeanPoolingSentenceEmbedder(BaseSentenceEmbedder):
-    """
-    Produces a sentence vector by averaging token embeddings.
-    Accepts any BaseEmbedder as the underlying word-level model.
+    """Produces a sentence vector by averaging word embeddings (mean pooling).
 
-    Pattern: Adapter / Strategy — the embedder is injected at construction,
-    making it easy to swap Word2Vec for FastText without changing this class.
+    Accepts any BaseEmbedder as the underlying word model.
 
-    Usage:
-        >>> embedder = FastTextEmbedder.load("models/cc.be.300.bin")
-        >>> sentence_embedder = MeanPoolingSentenceEmbedder(embedder)
-        >>> vec = sentence_embedder.embed_sentence(["Я", "іду", "дадому"])
+    Example:
+        >>> sent_emb = MeanPoolingSentenceEmbedder(word_embedder)
+        >>> vec = sent_emb.embed_sentence(["я", "іду", "дадому"])
+        >>> vec.shape  # -> (300,)
     """
 
     def __init__(self, embedder: BaseEmbedder) -> None:
@@ -28,5 +24,4 @@ class MeanPoolingSentenceEmbedder(BaseSentenceEmbedder):
         return self._embedder.dim
 
     def embed_sentence(self, tokens: list[str]) -> np.ndarray:
-        result = self._embedder.embed(tokens)
-        return result.vectors.mean(axis=0)
+        return self._embedder.embed(tokens).vectors.mean(axis=0)

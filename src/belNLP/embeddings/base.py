@@ -6,12 +6,21 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
-
 @dataclass
 class EmbeddingResult:
-    """Container for embedding output."""
+    """Container for a batch of word embeddings.
+
+    Attributes:
+        tokens:  The input words.
+        vectors: Float32 matrix of shape (n, dim).
+
+    Example:
+        >>> result = embedder.embed(["кот", "сабака"])
+        >>> result.vectors.shape  # -> (2, 300)
+        >>> result["кот"]         # -> np.ndarray of shape (300,)
+    """
     tokens:  list[str]
-    vectors: np.ndarray        # shape (n, dim)
+    vectors: np.ndarray
 
     @property
     def dim(self) -> int:
@@ -21,17 +30,15 @@ class EmbeddingResult:
         return len(self.tokens)
 
     def __getitem__(self, token: str) -> np.ndarray:
-        idx = self.tokens.index(token)
-        return self.vectors[idx]
-
+        return self.vectors[self.tokens.index(token)]
 
 
 class BaseEmbedder(ABC):
-    """Abstract base for all embedding models."""
+    """Base class for all embedding models."""
 
     @abstractmethod
     def embed(self, tokens: list[str]) -> EmbeddingResult:
-        """Embed a list of tokens, returning one vector per token."""
+        """Embed a list of tokens, one vector per token."""
 
     @abstractmethod
     def embed_word(self, word: str) -> np.ndarray:
@@ -46,28 +53,22 @@ class BaseEmbedder(ABC):
         return self.embed(tokens)
 
 
-
 class StaticEmbedder(BaseEmbedder):
-    """
-    Base for static (non-contextual) embedders.
-    Every word maps to a fixed vector regardless of context.
+    """Base for static embedders (Word2Vec, FastText, GloVe).
+    Each word maps to a fixed vector regardless of context.
     """
 
     @abstractmethod
     def get_vector(self, word: str) -> np.ndarray:
-        """Return the stored vector for *word*. Raises KeyError if OOV."""
+        """Return the stored vector for word. Raises KeyError if OOV."""
 
     @abstractmethod
     def most_similar(self, word: str, topn: int = 10) -> list[str]:
-        """Return *topn* nearest neighbours by cosine similarity."""
+        """Return topn nearest neighbours by cosine similarity."""
 
     @abstractmethod
     def __contains__(self, word: str) -> bool:
-        """True if *word* is in the vocabulary."""
-
-    # ------------------------------------------------------------------ #
-    # Concrete implementations shared by all static embedders             #
-    # ------------------------------------------------------------------ #
+        """True if word is in the vocabulary."""
 
     def embed_word(self, word: str) -> np.ndarray:
         return self.get_vector(word)
@@ -82,48 +83,31 @@ class StaticEmbedder(BaseEmbedder):
         topn: int = 10,
         exclude: set[str] | None = None,
     ) -> list[str]:
-        """
-        Return *topn* vocabulary words whose vectors are closest
-        to the given *vector* by cosine similarity.
-        Used by AnalogyEngine.
-        Subclasses may override this with a faster implementation.
-        """
+        """Return topn vocabulary words closest to vector by cosine similarity."""
         raise NotImplementedError(
-            f"{type(self).__name__} does not support most_similar_to_vector(). "
+            f"{type(self).__name__} does not implement most_similar_to_vector(). "
             "Override this method or use a model that exposes its full vocabulary."
         )
 
 
-
 class ContextualEmbedder(BaseEmbedder):
-    """
-    Base for contextual embedders (ELMo, BERT, …).
+    """Base for contextual embedders (ELMo, BERT).
     Vectors depend on the full token sequence.
     """
 
     @abstractmethod
     def embed_sentence(self, tokens: list[str]) -> EmbeddingResult:
-        """
-        Embed a sentence, producing context-aware vectors.
-        Unlike embed(), the whole sequence is processed at once.
-        """
+        """Embed a full sentence, producing context-aware vectors."""
 
-    # embed() delegates to embed_sentence() by default
     def embed(self, tokens: list[str]) -> EmbeddingResult:
         return self.embed_sentence(tokens)
 
     def embed_word(self, word: str) -> np.ndarray:
-        """Single-word context (no surrounding tokens)."""
         return self.embed_sentence([word]).vectors[0]
 
 
-
-# ------------------------------------------------------------------ #
-# Sentence-level embedders                                            #
-# ------------------------------------------------------------------ #
-
 class BaseSentenceEmbedder(ABC):
-    """Produces a single fixed-size vector for a whole sentence/sequence."""
+    """Base for sentence-level embedders that produce a single vector per sentence."""
 
     @abstractmethod
     def embed_sentence(self, tokens: list[str]) -> np.ndarray:

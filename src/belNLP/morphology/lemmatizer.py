@@ -15,6 +15,8 @@ EOS_ID = 2
 
 
 class _PositionalEncoding(nn.Module):
+    """Sinusoidal positional encoding added to token embeddings."""
+
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 256):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
@@ -34,9 +36,7 @@ class _PositionalEncoding(nn.Module):
 
 
 class _LemmatizerModel(nn.Module):
-    """
-    Character-level encoder-decoder transformer.
-    """
+    """Character-level seq2seq Transformer (encoder-decoder) for lemmatization."""
  
     def __init__(
         self,
@@ -72,10 +72,10 @@ class _LemmatizerModel(nn.Module):
         self.decoder  = nn.TransformerDecoder(dec_layer, num_dec_layers)
         self.input_proj = nn.Linear(d_model * 2, d_model)
         self.out_proj = nn.Linear(d_model, vocab_size)
-        self._init_weights() # FIXME remove this shi???
- 
-    # useless af?????
-    def _init_weights(self):
+        self._init_weights()
+
+    def _init_weights(self) -> None:
+        """Xavier uniform initialization for all weight matrices."""
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
@@ -178,6 +178,15 @@ def ids_to_str(tokens: list[int], idx2char: dict[int, str]) -> str:
 
 
 class Lemmatizer(BaseAnnotator[MorphToken, MorphToken]):
+    """Character-level seq2seq lemmatizer for Belarusian.
+
+    Example:
+        >>> lem = Lemmatizer.load("models/Lemmatizer.pt")
+        >>> lem.lemmatize("іду", "VERB")   # -> "ісці"
+        >>> tokens = lem.annotate([MorphToken("іду", pos="VERB")])
+        >>> tokens[0].lemma  # -> "ісці"
+    """
+
     def __init__(self,
                  model: _LemmatizerModel,
                  char2idx: dict[str, int],

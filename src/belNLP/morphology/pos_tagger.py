@@ -9,12 +9,7 @@ from belNLP.morphology.base import BaseAnnotator, MorphToken
 
 
 class _SelfAttention(nn.Module):
-    """
-    Single-head self-attention module, used to train the following parameters:
-    - Q matrix: query vectors
-    - K matrix: key vectors
-    - V matrix: value vectors
-    """
+    """Single-head self-attention (Q, K, V projections)."""
     def __init__(self, dim: int = 256) -> None:
         super().__init__()
         self.scale = dim ** 0.5
@@ -32,12 +27,7 @@ class _SelfAttention(nn.Module):
 
 
 class _WordEncoder(nn.Module):
-    """
-    Character-level BiLSTM encoder.
-    Encodes each word as a sequence of characters.
-    Input:  [batch, words, chars]
-    Output: [batch, words, hidden*2]
-    """
+    """Character-level BiLSTM encoder. Input: [B, W, C] → Output: [B, W, hidden*2]."""
     def __init__(self, vocab_size, embedding_dim=32, hidden=128, pad_id=0) -> None:
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_id)
@@ -57,12 +47,7 @@ class _WordEncoder(nn.Module):
 
 
 class _SentenceEncoder(nn.Module):
-    """
-    Word-level BiLSTM + self-attention encoder.
-    Contextualizes word representations at sentence level.
-    Input:  [batch, words, hidden*2]
-    Output: [batch, words, hidden*2]
-    """
+    """Word-level BiLSTM + self-attention. Input: [B, W, H*2] → Output: [B, W, H*2]."""
     def __init__(self, input_dim=256, hidden=128) -> None:
         super().__init__()
         self.lstm = nn.LSTM(input_dim, hidden, batch_first=True, bidirectional=True)
@@ -76,10 +61,7 @@ class _SentenceEncoder(nn.Module):
 
 
 class _POSTaggerModel(nn.Module):
-    """
-    Full POS tagging neural network.
-    CharBiLSTM -> SentenceBiLSTM + Attention -> Linear
-    """
+    """Full POS tagging model: CharBiLSTM → SentenceBiLSTM + Attention → Linear."""
 
     def __init__(
             self,
@@ -91,12 +73,8 @@ class _POSTaggerModel(nn.Module):
             pad_id=0,
     ) -> None:
         super().__init__()
-        self.word_encoder = _WordEncoder(
-            vocab_size, embedding_dim, word_hidden, pad_id
-        ) # [word1vec, word2vec, word3vec]
-        self.sent_encoder = _SentenceEncoder(
-            2 * word_hidden, sent_hidden
-        ) # [word1|conеxt, word2|context, word3|context]
+        self.word_encoder = _WordEncoder(vocab_size, embedding_dim, word_hidden, pad_id)
+        self.sent_encoder = _SentenceEncoder(2 * word_hidden, sent_hidden)
         self.linear = nn.Linear(
             2 * sent_hidden, num_tags
         )
@@ -110,18 +88,13 @@ class _POSTaggerModel(nn.Module):
 
 
 class POSTagger(BaseAnnotator[str, MorphToken]):
-    """
-    Part-of-speech tagger for Belarusian text.
-    Trained on UD Belarusian HSE corpus.
-    Tags: NOUN, VERB, ADJ, ADV, PRON, DET,
-          ADP, CONJ, PART, INTJ, NUM, PUNCT, X
+    """POS tagger for Belarusian text (UD HSE corpus).
 
-    Usage:
-        ```
+    Tags: NOUN, VERB, ADJ, ADV, PRON, DET, ADP, CONJ, PART, INTJ, NUM, PUNCT, X.
+
+    Example:
         >>> tagger = POSTagger.load("models/POSTagger.pt")
-        >>> result = tagger.annotate(["Я", "іду", "дадому"])
-        >>> assert result[1].pos == "VERB"
-        ```
+        >>> tagger.annotate(["я", "іду", "дадому"])[1].pos  # -> "VERB"
     """
     def __init__(self, model: _POSTaggerModel,
                  char2idx: dict[str, int],
@@ -156,9 +129,7 @@ class POSTagger(BaseAnnotator[str, MorphToken]):
         return cls(model, char2idx, idx2tag, device)
 
     def _encode(self, tokens: list[str]) -> torch.Tensor:
-        """
-
-        """
+        """Encode tokens as padded character-index tensor [1, words, max_chars]."""
         max_word_len = max(len(w) for w in tokens)
         padded = []
 
@@ -175,9 +146,7 @@ class POSTagger(BaseAnnotator[str, MorphToken]):
 
     @torch.no_grad()
     def annotate(self, tokens: list[str]) -> list[MorphToken]:
-        """
-
-        """
+        """Return a MorphToken with .pos filled for each input token."""
         self._model.eval()
 
         x = self._encode(tokens)

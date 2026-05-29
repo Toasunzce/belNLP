@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import EmbeddingsPage from './pages/EmbeddingsPage'
 import MorphologyPage from './pages/MorphologyPage'
+import WordsPage from './pages/WordsPage'
 
 export default function App() {
   return (
@@ -9,7 +10,8 @@ export default function App() {
         <Nav />
         <main style={{ flex: 1, overflow: 'hidden' }}>
           <Routes>
-            <Route path="/" element={<EmbeddingsPage />} />
+            <Route path="/" element={<WordsPage />} />
+            <Route path="/embeddings" element={<EmbeddingsPage />} />
             <Route path="/morphology" element={<MorphologyPage />} />
           </Routes>
         </main>
@@ -41,7 +43,8 @@ function Nav() {
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--accent)', marginRight: 16 }}>
         bel<span style={{ color: 'var(--accent2)' }}>NLP</span>
       </span>
-      <NavLink to="/" style={linkStyle}>embeddings</NavLink>
+      <NavLink to="/" style={linkStyle}>word space</NavLink>
+      <NavLink to="/embeddings" style={linkStyle}>embeddings</NavLink>
       <NavLink to="/morphology" style={linkStyle}>morphology</NavLink>
     </nav>
   )

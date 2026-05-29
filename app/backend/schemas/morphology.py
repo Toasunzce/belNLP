@@ -1,8 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AnalyzeRequest(BaseModel):
     text: str
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def lowercase_text(cls, v: str) -> str:
+        return v.lower()
 
 
 class TokenResult(BaseModel):
@@ -18,6 +23,11 @@ class AnalyzeResponse(BaseModel):
 class LemmatizeRequest(BaseModel):
     word: str
     pos: str = "NOUN"
+
+    @field_validator("word", mode="before")
+    @classmethod
+    def lowercase_word(cls, v: str) -> str:
+        return v.lower()
 
 
 class LemmatizeResponse(BaseModel):

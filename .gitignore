@@ -1,6 +1,16 @@
-src/data/
-src/models/
+**/__pycache__/
+
+.venv/
+venv/
+
 src/belNLP/testing/
 
-src/belNLP/morphology/__pycache__/
-src/belNLP/tokenization/__pycache__/
+src/models/
+src/data/
+
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.vite/
+
+.idea/
+.vscode/

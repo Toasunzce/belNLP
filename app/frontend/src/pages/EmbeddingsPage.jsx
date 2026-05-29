@@ -7,7 +7,7 @@ const POS_OPTIONS = ['NOUN','VERB','ADJ','ADV','PRON','DET','ADP','CONJ','PART',
 
 export default function EmbeddingsPage() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', height: '100%', overflow: 'hidden' }}>
       <EmbedViz />
       <Sidebar />
     </div>
@@ -17,12 +17,13 @@ export default function EmbeddingsPage() {
 // ── 3D Visualizer ────────────────────────────────────────────────────────────
 
 function EmbedViz() {
-  const [input, setInput] = useState('')
-  const [reduction, setReduction] = useState('pca')
-  const [dims, setDims] = useState('3')
-  const [points, setPoints] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [input,      setInput]      = useState('')
+  const [reduction,  setReduction]  = useState('pca')
+  const [dims,       setDims]       = useState('3')
+  const [points,     setPoints]     = useState([])
+  const [showLabels, setShowLabels] = useState(true)
+  const [loading,    setLoading]    = useState(false)
+  const [error,      setError]      = useState('')
 
   const run = useCallback(async () => {
     const words = input.split(/[\s,]+/).map(w => w.trim()).filter(Boolean)
@@ -45,7 +46,7 @@ function EmbedViz() {
 
   const plotData = points.length ? [{
     type: is3d ? 'scatter3d' : 'scatter',
-    mode: 'markers+text',
+    mode: showLabels ? 'markers+text' : 'markers',
     x: points.map(p => p.x),
     y: points.map(p => p.y),
     ...(is3d ? { z: points.map(p => p.z) } : {}),
@@ -57,6 +58,7 @@ function EmbedViz() {
       color: points.map((_, i) => i),
       colorscale: 'Viridis',
       opacity: 0.85,
+      line: { width: 0 },
     },
     hovertemplate: '<b>%{text}</b><extra></extra>',
   }] : []
@@ -68,6 +70,10 @@ function EmbedViz() {
     font: { family: 'IBM Plex Mono', color: '#6b6b80', size: 10 },
     scene: {
       bgcolor: '#0c0c0e',
+      camera: {
+        eye: { x: 1.4, y: 1.4, z: 1.1 },
+        center: { x: 0, y: 0, z: -0.15 },
+      },
       xaxis: { gridcolor: '#2a2a32', zerolinecolor: '#2a2a32' },
       yaxis: { gridcolor: '#2a2a32', zerolinecolor: '#2a2a32' },
       zaxis: { gridcolor: '#2a2a32', zerolinecolor: '#2a2a32' },
@@ -84,7 +90,7 @@ function EmbedViz() {
           <label>words (sep/by space)</label>
           <input
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => { setInput(e.target.value); if (!e.target.value.trim()) setPoints([]) }}
             onKeyDown={e => e.key === 'Enter' && run()}
             placeholder="кот сабака птушка вада агонь..."
             style={{ marginTop: 4 }}
@@ -105,6 +111,10 @@ function EmbedViz() {
             <option value="2">2D</option>
           </select>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', cursor: 'pointer', userSelect: 'none', paddingBottom: 2 }}>
+          <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} />
+          labels
+        </label>
         <button className="primary" onClick={run} disabled={loading}>
           {loading ? 'loading...' : 'visualize'}
         </button>
@@ -182,7 +192,7 @@ function SimilarityPanel() {
 
 function NearestPanel() {
   const [word, setWord] = useState('')
-  const [topn, setTopn] = useState(8)
+  const [topn, setTopn] = useState(10)
   const [neighbours, setNeighbours] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -256,7 +266,7 @@ function AnalogyPanel() {
       </div>
       {results.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>вынік:</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>result:</div>
           {results.map((w, i) => (
             <div key={w} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: i === 0 ? 'var(--accent2)' : 'var(--text)', padding: '3px 0' }}>
               {i === 0 ? '→ ' : '   '}{w}
