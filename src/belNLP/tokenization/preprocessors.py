@@ -26,7 +26,7 @@ class UnicodeNormalizer(BasePreprocessor):
         self._form = form
 
     def process(self, text: str) -> str:
-        return unicodedata.normalize(self._form, text)
+        return unicodedata.normalize(self._form, text)  # ty:ignore[invalid-argument-type]
 
 
 class WhitespaceNormalizer(BasePreprocessor):
